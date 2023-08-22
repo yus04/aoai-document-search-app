@@ -22,10 +22,11 @@
     },
     "forwardPorts": [
         // Forward ports if needed for local development
+        5000
     ],
     "postCreateCommand": "",
-    "remoteUser": "vscode",
-    "hostRequirements": {
-        "memory": "8gb"
-    }
+    "remoteUser": "vscode"
+    // "hostRequirements": {
+    //     "memory": "8gb"
+    // }
 }

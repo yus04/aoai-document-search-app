@@ -7,6 +7,30 @@
       },
       "location": {
         "value": "${AZURE_LOCATION}"
+      },
+      "keyVaultName": {
+        "value": "${AZURE_KEY_VAULT_NAME}"
+      },
+      "openAiServiceName": {
+        "value": "${AZURE_OPENAI_SERVICE}"
+      },
+      "openAiSkuName": {
+        "value": "S0"
+      },
+      "principalId": {
+        "value": "${AZURE_PRINCIPAL_ID}"
+      },
+      "principalType": {
+        "value": "${AZURE_PRINCIPAL_TYPE=User}"
+      },
+      "searchServiceName": {
+        "value": "${AZURE_SEARCH_SERVICE}"
+      },
+      "storageAccountName": {
+        "value": "${AZURE_STORAGE_ACCOUNT}"
+      },
+      "identityName": {
+        "value": "${SERVICE_IDENTITY_NAME}"
       }
     }
 }
