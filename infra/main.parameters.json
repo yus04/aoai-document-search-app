@@ -23,8 +23,8 @@
       "principalType": {
         "value": "${AZURE_PRINCIPAL_TYPE=User}"
       },
-      "searchServiceName": {
-        "value": "${AZURE_SEARCH_SERVICE}"
+      "cognitiveSearchName": {
+        "value": "${AZURE_COGNITIVE_SEARCH}"
       },
       "storageAccountName": {
         "value": "${AZURE_STORAGE_ACCOUNT}"

@@ -4,28 +4,16 @@ FROM python:3.11
 
 WORKDIR /code
 
-COPY backend/requirements.txt .
+COPY requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000
+EXPOSE 80
 
-ENTRYPOINT ["gunicorn", "app_test:app"]
+EXPOSE 443
 
-# # syntax=docker/dockerfile:1
+# ENV 
 
-# FROM python:3.11
-
-# WORKDIR /app/backend
-
-# COPY backend/requirements.txt .
-
-# RUN pip3 install -r requirements.txt
-
-# COPY . .
-
-# EXPOSE 8000
-
-# ENTRYPOINT ["gunicorn", "app:app"]
+ENTRYPOINT ["gunicorn", "app:app"]

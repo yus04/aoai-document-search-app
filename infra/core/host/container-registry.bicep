@@ -7,7 +7,6 @@ param tags object = {}
 param sku object = {
   name: 'Standard'
 }
-// param identity object
 param identity object = {
   type: 'SystemAssigned'
 }

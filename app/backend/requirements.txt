@@ -4,3 +4,7 @@ requests
 openai
 line-bot-sdk
 requests
+python-dotenv
+azure-identity
+azure-search-documents
+azure-cosmos

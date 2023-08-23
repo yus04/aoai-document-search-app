@@ -16,20 +16,23 @@
 targetScope = 'subscription'
 
 param resourceGroupName string = 'aoai-document-search-rg'
-param location string = 'japaneast'
+// param location string = 'japaneast'
 // param location string = 'eastus'
+param location string = 'eastus2'
 param tags object = {}
 param serviceName string = 'aoai-document-search'
 
 param gptDeploymentName string = 'gptdeployment'
 param searchIndexName string = 'gptkbindex'
 param storageContainerName string = 'Items'
+param cosmosDbName string = 'container'
+param cosmosDbContainerName string = 'Items'
 
 param principalId string = ''
 param environmentName string
 param tenantId string = tenant().tenantId
 // 最後の文字列は不要
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location, 'abcdefghijklmnopqrstuvwx'))
+var resourceToken = toLower(uniqueString(subscription().id, environmentName, location, 'abcdefghijklmnopqrstuvwxyzabcdefghi'))
 
 param userPrincipal string = 'User'
 // param servicePrincipal string = 'ServicePrincipal'
@@ -66,7 +69,60 @@ module containerApps 'core/host/container-apps.bicep' = {
   params: {
     containerAppsEnvironmentName: 'container-apps-environment'
     containerAppsName: 'container-apps-${resourceToken}'
-    // identityId: userIdentity.outputs.identityId
+    env: [
+      {
+        name: 'AZURE_KEY_VAULT_ENDPOINT'
+        value: keyVault.outputs.endpoint
+      }
+      {
+        name: 'COSMOS_DB_CONNECTION_STRING'
+        value: cosmosDb.outputs.connectionString
+      }
+      {
+        name: 'COSMOS_DB_NAME'
+        value: cosmosDbName
+      }
+      {
+        name: 'COSMOS_DB_CONTAINER_NAME'
+        value: cosmosDbContainerName
+      }
+      {
+        name: 'AZURE_STORAGE_BLOB_ENDPOINT'
+        value: storageAccount.outputs.primaryEndpoints.blob
+      }
+      {
+        name: 'AZURE_STORAGE_ACCOUNT_KEY'
+        value: storageAccount.outputs.key
+      }
+      {
+        name: 'AZURE_STORAGE_ACCOUNT'
+        value: storageAccount.outputs.name
+      }
+      {
+        name: 'AZURE_STORAGE_CONTAINER'
+        value: storageContainerName
+      }
+      {
+        name: 'AZURE_COGNITIVE_SEARCH_ENDPOINT'
+        value: cognitiveSearch.outputs.endpoint
+      }
+      {
+        name: 'AZURE_COGNITIVE_SEARCH_KEY'
+        value: cognitiveSearch.outputs.key
+      }
+      {
+        name: 'AZURE_COGNITIVE_SEARCH_INDEX'
+        value: searchIndexName
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: openAi.outputs.endpoint
+      }
+      {
+        name: 'AZURE_OPENAI_KEY'
+        value: openAi.outputs.key
+      }
+    ]
     identityName: 'user-identity'
     location: location
     tags: tags
@@ -82,7 +138,6 @@ module containerRegistry 'core/host/container-registry.bicep' = {
     name: 'containerregistry${resourceToken}'
     location: location
     tags: tags
-    // identity: 
   }
 }
 
@@ -263,6 +318,16 @@ module storageContribRoleUser 'core/security/role.bicep' = {
 //   }
 // }
 
+// module storageRoleBackend 'core/security/role.bicep' = {
+//   scope: resourceGroup
+//   name: 'storage-role-backend'
+//   params: {
+//     principalId: userIdentity.outputs.identityId
+//     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+//     principalType: servicePrincipal
+//   }
+// }
+
 // module searchRoleBackend 'core/security/role.bicep' = {
 //   scope: resourceGroup
 //   name: 'search-role-backend'
@@ -281,11 +346,9 @@ output AZURE_RESOURCE_GROUP string = resourceGroup.name
 output AZURE_OPENAI_SERVICE_NAME string = openAi.outputs.name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_OPENAI_GPT_DEPLOYMENT string = gptDeploymentName
-// output AZURE_OPENAI_RESOURCE_GROUP string = openAiResourceGroup.name
 
 output AZURE_COSMOSDB_NAME string = cosmosDb.outputs.name
 output AZURE_COSMOSDB_ENDPOINT string = cosmosDb.outputs.endpoint
-// output AZURE_COSMOSDB_RESOURCE_GROUP string = cosmosDbResourceGroup.name
 
 output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerApps.outputs.environmentName
 output AZURE_CONTAINER_APPS_NAME string = containerApps.outputs.containerAppsName
@@ -293,18 +356,14 @@ output AZURE_CONTAINER_URI string = containerApps.outputs.uri
 output AZURE_COUTAINER_IMAGE_NAME string = containerApps.outputs.containerImageName
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.registryName
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.registryLoginServer
-// output AZURE_CONTAINER_REGISTRY_RESOURCE_GROUP string = containerRegistry.outputs.registryName
 
 output AZURE_SEARCH_INDEX_NAME string = searchIndexName
-output AZURE_SEARCH_SERVICE_NAME string = cognitiveSearch.outputs.name
-output AZURE_SEARCH_SERVICE_ENDPOINT string = cognitiveSearch.outputs.endpoint
-// output AZURE_SEARCH_SERVICE_RESOURCE_GROUP string = cognitiveSearchResourceGroup.name
+output AZURE_COGNITIVE_SEARCH_NAME string = cognitiveSearch.outputs.name
+output AZURE_COGNITIVE_SEARCH_ENDPOINT string = cognitiveSearch.outputs.endpoint
 
 output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
-// output AZURE_KEY_VAULT_RESOURCE_GROUP string = keyVaultResourceGroup.name
 
 output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
 output AZURE_STORAGE_CONTAINER_NAME string = storageContainerName
 output AZURE_STORAGE_BLOB_ENDPOINT string = storageAccount.outputs.primaryEndpoints.blob
-// output AZURE_STORAGE_RESOURCE_GROUP string = storageResourceGroup.name

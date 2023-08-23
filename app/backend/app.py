@@ -1,36 +1,46 @@
-import os, requests, json, logging, openai
+import os, requests, json, logging, openai, datetime, uuid
 from flask import (Flask, request, session, abort)
 from datetime import timedelta
+from dotenv import load_dotenv
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from azure.cosmos import CosmosClient
+
+load_dotenv(dotenv_path='.env')
+# load_dotenv(dotenv_path='./app/backend/.env') # for local test
 
 openai.api_type = "azure"
 openai.api_version = "2023-05-15"
-openai.api_base = os.getenv('OPENAI_API_BASE')
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# openai.api_base = os.getenv('OPENAI_API_BASE')
+openai.api_base = os.getenv('AZURE_OPENAI_ENDPOINT')
+# openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = os.getenv('AZURE_OPENAI_KEY')
 
-app_test = Flask(__name__)
-app_test.secret_key = os.getenv('FLASK_APP_SECRET_KEY')
-app_test.permanent_session_lifetime = timedelta(minutes=5)
+app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_APP_SECRET_KEY')
+app.permanent_session_lifetime = timedelta(minutes=5)
 
 channel_access_token = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', None)
 channel_secret = os.getenv('LINE_CHANNEL_SECRET', None)
 line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
 
-pdf_path = "data/PRIUS_UG_JP_M47E40_1_2301.pdf"
+# search_document_key = os.getenv('SEARCH_DOCUMENT_KEY', None)
+search_document_key = os.getenv('AZURE_COGNITIVE_SEARCH_KEY', None)
 
-@app_test.route("/")
+# pdf_path = "data/PRIUS_UG_JP_M47E40_1_2301.pdf"
+
+@app.route("/")
 def index():
     return "index"
 
-@app_test.route("/callback", methods=['POST'])
+@app.route("/callback", methods=['POST'])
 def callback():
     init()
     signature = request.headers['x-line-signature']
     body = request.get_data(as_text=True)
-    app_test.logger.info("Request body: " + body)
+    app.logger.info("Request body: " + body)
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
@@ -41,10 +51,12 @@ def callback():
 def handle_message(event):
     answer, top_results, file_names = get_answer(event.message.text)
     top_results_str = top_results_to_str(top_results, file_names, True)
+    answer_and_citation = "【AIによる回答】\n" + answer + "\n\n" + "【取扱説明書の抜粋】\n" + top_results_str
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text="【AIによる回答】\n" + answer + "\n\n" + "【取扱説明書の抜粋】\n" + top_results_str)
+        TextSendMessage(text=answer_and_citation)
     )
+    insert_cosmos_db(event.source.user_id, event.message.text, answer_and_citation)
 
 def get_question() -> str:
     question=request.args['question']
@@ -106,16 +118,23 @@ def ask_gpt3(prompt: [], chat_history: [], question: []) -> str:
 
 def search_document(query: str) -> [str, [str], [str]]:
     # urlそのままはよくない
-    url_to_get = f"https://search-service-yzdsredleanja.search.windows.net/indexes/azureblob-index8/docs?api-version=2023-07-01-Preview&search={query}"
-    custom_headers = {
-        "api-key": "N75F074UoTZ2hheEleX22QGdpju8zNtipyWXdTvBT2AzSeDEoYtN",
-    }
+    cognitive_search_url = os.getenv('AZURE_COGNITIVE_SEARCH_ENDPOINT')
+    cognitive_search_url = remove_trailing_slash(cognitive_search_url)
+    index_name = os.getenv('INDEX_NAME')
+    # url_to_get = f"https://search-service-yzdsredleanja.search.windows.net/indexes/azureblob-index8/docs?api-version=2023-07-01-Preview&search={query}"
+    url_to_get = f"{cognitive_search_url}/indexes/{index_name}/docs?api-version=2023-07-01-Preview&search={query}"
+    custom_headers = { "api-key": search_document_key }
     responseText = send_get_request_with_headers(url_to_get, custom_headers)
     responseJson = decode_unicode_escape(responseText)
     top_results, file_names = select_top_results(responseJson, 3)
     top_results_str = top_results_to_str(top_results, [], False)
     search_results = top_results_str
     return search_results, top_results, file_names
+
+def remove_trailing_slash(url):
+    if url.endswith('/'):
+        url = url[:-1]
+    return url
 
 def send_get_request_with_headers(url: str, headers: json) -> str:
     try:
@@ -159,10 +178,30 @@ def add_chat_history(question: str, answer: str) -> None:
     session['chat_history'].append({"role": "user", "content": question})
     session['chat_history'].append({"role": "assistant", "content": answer})
 
+def insert_cosmos_db(user_id: str, input_txt: str, output_txt: str) -> None:
+    try:
+        connection_string = os.getenv('COSMOS_DB_CONNECTION_STRING', None)
+        cosmos_db_name = os.getenv('COSMOS_DB_NAME', None)
+        cosmos_container_name = os.getenv('COSMOS_DB_CONTAINER_NAME', None)
+        client = CosmosClient.from_connection_string(connection_string)
+        database_client = client.get_database_client(cosmos_db_name)
+        container_client = database_client.get_container_client(cosmos_container_name)
+        dt_now_jst_aware = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+        container_client.upsert_item({
+                'id': str(uuid.uuid4()),
+                'user_id': user_id,
+                'question': str(input_txt),
+                'answer': str(output_txt),
+                'created_at': str(dt_now_jst_aware),
+        })
+        logging.info('Project details are stored to Cosmos DB.')
+    except Exception as e:
+        logging.error(e)
+
 # Test Function
 # Attention: Need to provide question as a parameter
 # for example, <URL>?question=車両が故障したときはどうすればいいですか？
-@app_test.route("/test_get_answer")
+@app.route("/test_get_answer")
 def test_get_answer():
     init()
     question = get_question()
@@ -171,6 +210,14 @@ def test_get_answer():
     answer = generate_answer(question, search_result)
     add_chat_history(question, answer)
     return answer
-    
+
+@app.route("/test_insert_cosmos_db")
+def test_insert_cosmos_db():
+    user_id = "test_user_id"
+    input_txt = "test_input_txt"
+    output_txt = "test_output_txt"
+    insert_cosmos_db(user_id, input_txt, output_txt)
+    return "inserted"
+
 if __name__ == '__main__':
-   app_test.run()
+   app.run(port=80)

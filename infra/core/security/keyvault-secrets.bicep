@@ -3,16 +3,7 @@
 
 param keyVaultName string
 param secrets array = []
-
-// param name string
 param tags object = {}
-
-// param enabled bool = true
-// param exp int = 0
-// param nbf int = 0
-
-// param contentType string
-// param value string
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName

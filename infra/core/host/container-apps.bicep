@@ -7,14 +7,8 @@ param tags object = {}
 param serviceNameTags object = {}
 
 param containerAppsName string
+param env array = []
 param identityName string = ''
-// param userIdentity object
-// param identityId string
-// param userAssignedIdentities object = {
-//   'userIdentity': userIdentityId
-//   'subscriptionId': {},
-//   'resourceGroup': {}
-// }
 
 param revisionMode string = 'Single'
 param ingressEnabled bool = true
@@ -69,6 +63,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = {
         {
           image: imageName
           name: containerAppsName
+          env: env
           resources: {
             cpu: json(containerCpuCoreCount)
             memory: containerMemory

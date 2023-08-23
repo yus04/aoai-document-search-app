@@ -51,3 +51,4 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
 
 output endpoint string = openAiAccount.properties.endpoint
 output name string = openAiAccount.name
+output key string = openAiAccount.listKeys().key1

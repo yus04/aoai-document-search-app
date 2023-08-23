@@ -35,4 +35,4 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
 output id string = cosmosDb.id
 output name string = cosmosDb.name
 output endpoint string = cosmosDb.properties.documentEndpoint
-// output primaryMasterKey string = cosmosDb.properties.keyVaultKeyUri
+output connectionString string = cosmosDb.listConnectionStrings().connectionStrings[0].connectionString
