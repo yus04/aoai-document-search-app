@@ -1,6 +1,7 @@
 .azure
 app/backend/.env
 app/prepdocs/.env
+app/backend/__pycache__
 data/*
 !20230609_policies_priority_outline_05.pdf
 memo
