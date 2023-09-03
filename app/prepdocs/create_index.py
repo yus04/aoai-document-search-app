@@ -8,6 +8,8 @@ load_dotenv(dotenv_path='./app/prepdocs/.env')
 cognitive_search_url = os.getenv('AZURE_COGNITIVE_SEARCH_ENDPOINT')
 api_key = os.getenv('AZURE_COGNITIVE_SEARCH_KEY')
 
+index_name = os.getenv('LINE_BOT_NAME') + os.getenv('INDEX_NAME')
+
 request_body = {
   "fields":
   [
@@ -307,8 +309,6 @@ request_body = {
     }
   ]
 }
-
-index_name = os.getenv('INDEX_NAME')
 
 headers = { "api-key " : api_key, "Content-Type" : "application/json" }
 ret = requests.put(cognitive_search_url + f"/indexes/{index_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))

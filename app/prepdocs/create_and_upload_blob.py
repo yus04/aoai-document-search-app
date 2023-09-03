@@ -35,12 +35,15 @@ def remove_cid_tags(input_string: str) -> str:
     cleaned_string = re.sub(r'\(cid:\d+\)', '', input_string)
     return cleaned_string
 
+def is_japanese(str):
+    return True if re.search(r'[ぁ-んァ-ン]', str) else False 
+
 storage_account = os.getenv('AZURE_STORAGE_ACCOUNT')
 account_url = f"https://{storage_account}.blob.core.windows.net"
 default_credential = DefaultAzureCredential()
 blob_service_client = BlobServiceClient(account_url, credential=default_credential)
 
-container_name = os.getenv('BLOB_CONTAINER_NAME')
+container_name = os.getenv('LINE_BOT_NAME') + os.getenv('BLOB_CONTAINER_NAME')
 
 exists = check_container_existence(blob_service_client, container_name)
 
@@ -69,6 +72,6 @@ for page_num, page_text in enumerate(pages, start=1):
         data = remove_space(data)
         data = remove_cid_tags(data)
         if data.endswith("・・"): continue # エラー回避
-        if len(data) < 10: continue # 10文字以下は無視
-        blob_client = blob_service_client.get_blob_client(container=container_name, blob=str(page_num) + "_" + str(idx) + ".txt")
+        if not is_japanese(data): continue # 日本語以外は無視
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=local_file_name + "_" + str(page_num) + "_" + str(idx) + ".txt")
         blob_client.upload_blob(data, overwrite=True)

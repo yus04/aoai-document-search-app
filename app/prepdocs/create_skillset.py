@@ -8,6 +8,8 @@ load_dotenv(dotenv_path='./app/prepdocs/.env')
 cognitive_search_url = os.getenv('AZURE_COGNITIVE_SEARCH_ENDPOINT')
 api_key = os.getenv('AZURE_COGNITIVE_SEARCH_KEY')
 
+skill_name = os.getenv('LINE_BOT_NAME') + os.getenv('SKILLSET_NAME')
+
 request_body = {
   "description": "",
   "skills":
@@ -117,8 +119,6 @@ request_body = {
   #   "key":"146433e88e624c3484d93fbe53f4b1e0"
   # }
 }
-
-skill_name = os.getenv('SKILLSET_NAME')
 
 headers = { "api-key " : api_key, "Content-Type" : "application/json" }
 ret = requests.put(cognitive_search_url + f"/skillsets/{skill_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))

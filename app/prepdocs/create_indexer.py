@@ -8,12 +8,17 @@ load_dotenv(dotenv_path='./app/prepdocs/.env')
 cognitive_search_url = os.getenv('AZURE_COGNITIVE_SEARCH_ENDPOINT')
 api_key = os.getenv('AZURE_COGNITIVE_SEARCH_KEY')
 
+indexer_name = os.getenv('LINE_BOT_NAME') + os.getenv('INDEXER_NAME')
+datasource_name = os.getenv('LINE_BOT_NAME') + os.getenv('DATASOURCE_NAME')
+index_name = os.getenv('LINE_BOT_NAME') + os.getenv('INDEX_NAME')
+skillset_name = os.getenv('LINE_BOT_NAME') + os.getenv('SKILLSET_NAME')
+
 request_body = {
-  "name": os.getenv('INDEXER_NAME'),
+  "name": indexer_name,
   "description": "",
-  "dataSourceName" : os.getenv('DATASOURCE_NAME'),
-  "targetIndexName" : os.getenv('INDEX_NAME'),
-  "skillsetName" : os.getenv('SKILLSET_NAME'),
+  "dataSourceName" : datasource_name,
+  "targetIndexName" : index_name,
+  "skillsetName" : skillset_name,
   "fieldMappings" : [
     {
       "sourceFieldName": "metadata_storage_path",
@@ -79,8 +84,6 @@ request_body = {
     }
   }
 }
-
-indexer_name = os.getenv('INDEXER_NAME')
 
 headers = { "api-key " : api_key, "Content-Type" : "application/json" }
 ret = requests.put(cognitive_search_url + f"/indexers/{indexer_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))
