@@ -1,4 +1,18 @@
 # 手順
+本アプリを実行する手順を簡単にまとめます。
+
+## 開発コンテナの立ち上げ
+Visual Studio Codeの拡張機能であるDev Containerを用います。
+コマンドパレットを立ち上げて、`Reopen in Container`と入力して実行してください。
+
+## .envの設定
+`.env.sample`を参考にして、`app/backend/.env`と`app/prepdocs/.env`に必要な情報を記載してください。
+
+## LINEのセットアップ
+Line Developerの登録を行い、Webhook URLの登録をしてください。
+https://developers.line.biz/ja/
+
+## アプリのデプロイ
 
 環境を初期化
 ```
@@ -20,10 +34,8 @@ Azureリソースをプロビジョニング(azd provision)と、アプリのデ
 azd up
 ```
 
-# その他手順
-Line Developerの登録を行い、Webhook URLの登録をしてください。
-
-https://developers.line.biz/ja/
+# 注意事項
+- Azure Cognitive Searchは高額なので、不要になったらリソースの削除を行うこと。
 
 # サンプルデータ
 
