@@ -36,6 +36,8 @@ azd up
 
 # 注意事項
 - Azure Cognitive Searchは高額なので、不要になったらリソースの削除を行うこと。
+- Bing検索を使用する場合は、app/backend/app.pyの`use_bing_search`を`True`に変更。さらに、AzureポータルでBingリソースを作成し、BING_API_KEYとBING_ENDPOINTをapp/backend/.envに入力した後、`azd deploy`を実行すること。
+
 
 # サンプルデータ
 
