@@ -179,6 +179,10 @@ module keyVaultSecrets 'core/security/keyvault-secrets.bicep' = {
         value: openAi.outputs.endpoint
       }
       {
+        name: 'AzureOpenAiServiceKey'
+        value: openAi.outputs.key
+      }
+      {
         name: 'AzureOpenAiGptDeployment'
         value: gptDeploymentName
       }
@@ -187,12 +191,28 @@ module keyVaultSecrets 'core/security/keyvault-secrets.bicep' = {
         value: cognitiveSearch.outputs.endpoint
       }
       {
+        name: 'AzureCognitiveSearchKey'
+        value: cognitiveSearch.outputs.key
+      }
+      {
         name: 'AzureSearchIndex'
         value: searchIndexName
       }
       {
         name: 'AzureCosmosDbEndpoint'
         value: cosmosDb.outputs.endpoint
+      }
+      {
+        name: 'AzureCosmosDbConnectionString'
+        value: cosmosDb.outputs.connectionString
+      }
+      {
+        name: 'AzureCosmosDbName'
+        value: cosmosDbName
+      }
+      {
+        name: 'AzureCosmosDbContainerName'
+        value: cosmosDbContainerName
       }
       {
         name: 'AzureStorageAccountEndpoint'
