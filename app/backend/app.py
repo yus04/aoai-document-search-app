@@ -1,6 +1,6 @@
-import os, requests, json, logging, openai, datetime, uuid
+import os, requests, json, logging, openai, datetime, uuid, re
+from bs4 import BeautifulSoup
 from flask import Flask, request, abort
-from datetime import timedelta
 from dotenv import load_dotenv
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -44,17 +44,29 @@ authentication_credentials = {
         'line_channel_access_token' : os.getenv('EK_LINE_CHANNEL_ACCESS_TOKEN', None),
         'line_bot_api' : LineBotApi(os.getenv('EK_LINE_CHANNEL_ACCESS_TOKEN', None)),
         'handler' : WebhookHandler(os.getenv('EK_LINE_CHANNEL_SECRET', None))
+    },
+    'laviebot' : {
+        'line_channel_secret' : os.getenv('LA_LINE_CHANNEL_SECRET', None),
+        'line_channel_access_token' : os.getenv('LA_LINE_CHANNEL_ACCESS_TOKEN', None),
+        'line_bot_api' : LineBotApi(os.getenv('LA_LINE_CHANNEL_ACCESS_TOKEN', None)),
+        'handler' : WebhookHandler(os.getenv('LA_LINE_CHANNEL_SECRET', None))
     }
 }
 
 pr_line_bot_api = authentication_credentials['priusbot']['line_bot_api']
 sk_line_bot_api = authentication_credentials['skylinebot']['line_bot_api']
 ek_line_bot_api = authentication_credentials['ekcrossbot']['line_bot_api']
+la_line_bot_api = authentication_credentials['laviebot']['line_bot_api']
 pr_handler = authentication_credentials['priusbot']['handler']
 sk_handler = authentication_credentials['skylinebot']['handler']
 ek_handler = authentication_credentials['ekcrossbot']['handler']
+la_handler = authentication_credentials['laviebot']['handler']
 
-initialized = False
+use_bing_search = True
+use_keyword_query = False
+
+bing_api_subscription_key = os.getenv('BING_API_KEY', None)
+bing_url = os.getenv('BING_ENDPOINT', None)
 
 @app.route("/")
 def index():
@@ -74,6 +86,8 @@ def callback():
             sk_handler.handle(body, signature)
         elif bot_name == 'ekcrossbot':
             ek_handler.handle(body, signature)
+        elif bot_name == 'laviebot':
+            la_handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
     return 'OK'
@@ -90,7 +104,10 @@ def sk_message(event):
 def ek_message(event):
     handle_message(event, ek_line_bot_api, 'ekcrossbot')
 
-# @handler.add(MessageEvent, message=TextMessage)
+@la_handler.add(MessageEvent, message=TextMessage)
+def la_message(event):
+    handle_message(event, la_line_bot_api, 'laviebot')
+
 def handle_message(event: any, line_bot_api: any, bot_name: str) -> None:
     user_message = event.message.text
     user_id = event.source.user_id
@@ -100,7 +117,7 @@ def handle_message(event: any, line_bot_api: any, bot_name: str) -> None:
         inform_change_to_line(event.reply_token, line_bot_api, conversation_style)
     else:
         answer, top_results, file_names = get_answer(user_message, bot_name, session)
-        top_results_str = top_results_to_str(top_results, file_names, True)
+        top_results_str = top_results_to_str(top_results, file_names[:3], True)
         reply_answer_to_line(answer, top_results_str, event.reply_token, line_bot_api, session)
         insert_cosmos_db(event.source.user_id, user_message, answer)
 
@@ -120,9 +137,10 @@ def change_conversation_style(user_message: str, user_id: str) -> str:
     return None
 
 def get_answer(question: str, bot_name: str, session: []) -> [str, str]:
-    query = generate_query(question)
+    query = generate_query(question) if use_keyword_query else question
     search_result, top_results, file_names = search_document(query, bot_name)
     answer = generate_answer(question, search_result, session)
+    if use_bing_search: answer = bing_search_if_no_answer(answer, question, session)
     add_chat_history(question, answer, session)
     return answer, top_results, file_names
 
@@ -164,24 +182,18 @@ def generate_answer(question: str, search_result: str, session: []) -> str:
     if conversation_style == 'simple':
         style = '大雑把な'
         n_words = 30
-        answer1 = "スイッチを引いてウォッシャー液噴射、レバーを離すとワイパー動作が停止します。リヤも同様です。操作後3秒でワイパー再作動します。"
-        answer2 = "タイヤを交換する際は、ウェアインジケーターが同じ高さになったら同一サイズと銘柄のものに交換してください。詳細は三菱自動車販売会社に相談してください。"
+        assistant_answer = "スイッチを引いてウォッシャー液噴射、レバーを離すとワイパー動作が停止します。リヤも同様です。操作後3秒でワイパー再作動します。"
     elif conversation_style == 'normal':
         style = '普通の'
         n_words = 50
-        answer1 = "フロントウォッシャーを使うには、スイッチを手前に引いてウォッシャー液を噴射し、スイッチを引いている間はワイパーが作動します。\
+        assistant_answer = "フロントウォッシャーを使うには、スイッチを手前に引いてウォッシャー液を噴射し、スイッチを引いている間はワイパーが作動します。\
             レバーを離すとワイパーが数回動いて停止します。"
-        answer2 = "タイヤを交換するタイミングは、タイヤが摩耗し、ウェアインジケーターが同じ高さになったときです。\
-            その際、指定サイズと同一の銘柄、パターンのタイヤを使用してください。必要なら三菱自動車販売会社に相談し、空気圧も点検してください。"
     elif conversation_style == 'strict':
         style = '丁寧な'
         n_words = 100
-        answer1 = "フロントウォッシャーを使うには、スイッチを手前に引いてウォッシャー液を噴射し、引いている間はワイパーも動きます。\
+        assistant_answer = "フロントウォッシャーを使うには、スイッチを手前に引いてウォッシャー液を噴射し、引いている間はワイパーも動きます。\
             レバーを離すとワイパーは数回動いて停止します。リヤウォッシャーも同様に操作でき、ウォッシャー液を噴射した後、ワイパーで拭き取ります。\
             操作後、ワイパーは約3秒後に自動的に数回動きます。"
-        answer2 = "タイヤを交換するタイミングは、タイヤが摩耗して接地面とウェアインジケーターが同じ高さになったときです。\
-            4輪とも同時に、同一の銘柄とパターンの指定サイズのタイヤを取り付けて、必ず三菱自動車販売会社に相談してください。\
-            また、タイヤの位置交換と同時に空気圧を点検し、溝の深さやウェアインジケーターを確認することも重要です。"
     prompt = [
         {
             "role": "system",
@@ -199,21 +211,8 @@ def generate_answer(question: str, search_result: str, session: []) -> str:
         },
         {
             "role": "assistant",
-            "content": answer1
-        },
-        # {
-        #     "role": "user",
-        #     "content": "質問内容：タイヤを交換するタイミングを教えて 質問に回答するための情報：タイヤ･ロードホイールを交換するときは\
-        #         ●タイヤ交換をするときは、三菱自動車販売会社にご相談ください。●タイヤを交換するときは、4輪とも同時期に行い、必ず指定サイズで同一の銘柄、パターン（溝模様）のタイヤを取り付けてください。\
-        #         ●タイヤサイズは運転席ドア開口部のタイヤ空気圧表示を参照してください●タイヤが摩耗して接地面とウェアインジケーター（摩耗限界表示）が同じ高さになったらタイヤを交換してください。\
-        #         タイヤ･ロードホイールを交換するときは●タイヤ交換をするときは、三菱自動車販売会社にご相談ください。●タイヤを交換するときは、4輪とも同時期に行い、必ず指定サイズで同一の銘柄、\
-        #         パターン（溝模様）のタイヤを取り付けてください アドバイス●タイヤの位置交換と同時に空気圧も点検してください。●タイヤの位置交換については、三菱自動車販売会社にご相談ください。\
-        #         メンテナンス●タイヤの溝の深さが十分であるか、ウェアインジケーター（摩耗限界表示）が表れていないか点検してください"
-        # },
-        # {
-        #     "role": "assistant",
-        #     "content": answer2
-        # },
+            "content": assistant_answer
+        }
     ]
     question_and_search_result = [
         {"role": "user", "content": f"質問内容：{question}質問に回答するための情報：{search_result}"},
@@ -289,7 +288,7 @@ def top_results_to_str(top_results: [], file_names: [], shaping: bool) -> str:
     return top_results_str.rstrip()
 
 def get_page(file_name: str) -> str:
-    return "(p. " + file_name.split('_')[0] + "に記載)"
+    return "(p. " + file_name.split('_')[1] + "に記載)"
 
 def add_chat_history(question: str, answer: str, session: []) -> None:
     chat_history = session['chat_history']
@@ -345,18 +344,63 @@ def read_session_from_cosmos_db(user_id: str) -> []:
     except Exception as e:
         logging.error(e)
 
+def bing_search_if_no_answer(answer: str, question: str, session: []) -> str:
+    if "回答できません" in answer:
+        bing_results = get_bing_results(question)
+        search_urls = get_urls(bing_results, count = 3)
+        return answer + "\n代わりにこちらの記事を参考にしてください。\n" + search_urls[0]
+    else:
+        return answer
+
+def get_bing_results(search_term: str) -> json:
+    headers = {"Ocp-Apim-Subscription-Key": bing_api_subscription_key}
+    params = {"q": search_term}
+    response = requests.get(bing_url, headers=headers, params=params)
+    response.raise_for_status()
+    bing_results = response.json()
+    return bing_results
+
+def get_urls(bing_results: json, count: int) -> [str]:
+    urls = []
+    for result in bing_results["webPages"]["value"]:
+        urls.append(result["url"])
+    return urls[:count]
+
+def get_web_text(url: str) -> str:
+    response = requests.get(url)
+    if response.status_code == 200:
+        response.encoding = 'utf-8'
+        html_text = response.text
+        soup = BeautifulSoup(html_text, 'html.parser')
+        main_content = soup.find('body')
+        if main_content:
+            raw_text = main_content.get_text()
+            cleaned_text = re.sub(r'\s+', ' ', raw_text).strip()
+            return cleaned_text
+        else:
+            return "not found main content"
+    else:
+        print(f"error: status code {response.status_code}")
+
+def get_web_texts(urls: [str]) -> [str]:
+    web_texts = []
+    for url in urls:
+        web_texts.append(get_web_text(url))
+    return web_texts
+
 # Test Function
 # Attention: Need to provide question as a parameter
-# for example, <URL>?question=車両が故障したときはどうすればいいですか？?bot_name=hoge
+# for example, <URL>?question=車両が故障したときはどうすればいいですか？&bot_name=hoge
 @app.route("/test_get_answer")
 def test_get_answer():
     question = get_question()
     query = generate_query(question)
     bot_name = get_bot_name()
     search_result, _, _ = search_document(query, bot_name)
-    answer = generate_answer(question, search_result)
-    session = []
-    add_chat_history(question, answer, session)
+    session = {'conversation_style': 'normal', 'chat_history': []}
+    answer = generate_answer(question, search_result, session)
+    if use_bing_search: answer = bing_search_if_no_answer(answer, question, session)
+    # add_chat_history(question, answer, session)
     return answer
 
 def get_question() -> str:

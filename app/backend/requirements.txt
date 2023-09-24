@@ -8,3 +8,4 @@ python-dotenv
 azure-identity
 azure-search-documents
 azure-cosmos
+beautifulsoup4
