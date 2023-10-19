@@ -6,6 +6,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from pdfminer.high_level import extract_text # 日本語対応テキスト抽出ライブラリ
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
+from azure.keyvault.secrets import SecretClient
 
 load_dotenv(dotenv_path='./app/prepdocs/.env')
 
@@ -38,9 +39,12 @@ def remove_cid_tags(input_string: str) -> str:
 def is_japanese(str):
     return True if re.search(r'[ぁ-んァ-ン]', str) else False 
 
-storage_account = os.getenv('AZURE_STORAGE_ACCOUNT')
-account_url = f"https://{storage_account}.blob.core.windows.net"
+key_vault_name = os.getenv('AZURE_KEY_VAULT')
 default_credential = DefaultAzureCredential()
+secret_client = SecretClient(vault_url=f"https://{key_vault_name}.vault.azure.net", credential=default_credential)
+storage_account = secret_client.get_secret('AzureStorageAccountName')
+storage_account_name = storage_account.value
+account_url = f"https://{storage_account_name}.blob.core.windows.net"
 blob_service_client = BlobServiceClient(account_url, credential=default_credential)
 
 container_name = os.getenv('LINE_BOT_NAME') + os.getenv('BLOB_CONTAINER_NAME')

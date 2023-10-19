@@ -2,11 +2,17 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 
 load_dotenv(dotenv_path='./app/prepdocs/.env')
 
-cognitive_search_url = os.getenv('AZURE_COGNITIVE_SEARCH_ENDPOINT')
-api_key = os.getenv('AZURE_COGNITIVE_SEARCH_KEY')
+key_vault_name = os.getenv('AZURE_KEY_VAULT')
+default_credential = DefaultAzureCredential()
+secret_client = SecretClient(vault_url=f"https://{key_vault_name}.vault.azure.net", credential=default_credential)
+cognitive_search_url = secret_client.get_secret('AzureCognitiveSearchEndpoint').value
+api_key = secret_client.get_secret('AzureCognitiveSearchKey').value
+
 
 index_name = os.getenv('LINE_BOT_NAME') + os.getenv('INDEX_NAME')
 
@@ -311,7 +317,4 @@ request_body = {
 }
 
 headers = { "api-key " : api_key, "Content-Type" : "application/json" }
-ret = requests.put(cognitive_search_url + f"/indexes/{index_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))
-
-print(ret)
-
+ret = requests.put(cognitive_search_url + f"indexes/{index_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))

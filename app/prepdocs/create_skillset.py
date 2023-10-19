@@ -2,11 +2,17 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 
 load_dotenv(dotenv_path='./app/prepdocs/.env')
 
-cognitive_search_url = os.getenv('AZURE_COGNITIVE_SEARCH_ENDPOINT')
-api_key = os.getenv('AZURE_COGNITIVE_SEARCH_KEY')
+key_vault_name = os.getenv('AZURE_KEY_VAULT')
+default_credential = DefaultAzureCredential()
+secret_client = SecretClient(vault_url=f"https://{key_vault_name}.vault.azure.net", credential=default_credential)
+cognitive_search_url = secret_client.get_secret('AzureCognitiveSearchEndpoint').value
+api_key = secret_client.get_secret('AzureCognitiveSearchKey').value
+azure_ai_services_key = secret_client.get_secret('AzureAiServicesKey').value
 
 skill_name = os.getenv('LINE_BOT_NAME') + os.getenv('SKILLSET_NAME')
 
@@ -113,14 +119,12 @@ request_body = {
       ]
     }
   ],
-  # "cognitiveServices": {
-  #   "@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey",
-  #   # "key":"<Your-Cognitive-Services-Multiservice-Key>"
-  #   "key":"146433e88e624c3484d93fbe53f4b1e0"
-  # }
+  "cognitiveServices": {
+    "@odata.type": "#Microsoft.Azure.Search.CognitiveServicesByKey",
+    "description": "mycogsvcs",
+    "key": azure_ai_services_key
+  }
 }
 
 headers = { "api-key " : api_key, "Content-Type" : "application/json" }
-ret = requests.put(cognitive_search_url + f"/skillsets/{skill_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))
-
-print(ret)
+ret = requests.put(cognitive_search_url + f"skillsets/{skill_name}?api-version=2020-06-30", headers=headers, data=json.dumps(request_body))
