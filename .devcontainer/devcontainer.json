@@ -6,7 +6,9 @@
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -14,9 +16,9 @@
 	// Define workspaceFolder here(Default is /workspaces/<VS Code workspace name>)
 	"workspaceFolder": "/workspaces/aoai-document-search-app", 
 
-	// Use 'postCreateCommand' to run commands after the container is created.
+		// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "pip3 install --user -r .devcontainer/requirements.txt && curl -fsSL https://aka.ms/install-azd.sh | bash"
-
+	
 	// Configure tool-specific properties.
 	// "customizations": {},
 
