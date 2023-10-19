@@ -16,9 +16,7 @@
 targetScope = 'subscription'
 
 param resourceGroupName string = 'aoai-document-search-rg'
-// param location string = 'japaneast'
-// param location string = 'eastus'
-param location string = 'eastus2'
+param location string = 'japaneast'
 param tags object = {}
 param serviceName string = 'aoai-document-search'
 
@@ -31,11 +29,9 @@ param cosmosDbContainerName string = 'Items'
 param principalId string = ''
 param environmentName string
 param tenantId string = tenant().tenantId
-// 最後の文字列は不要
-var resourceToken = toLower(uniqueString(subscription().id, environmentName, location, 'abcdefghijklmnopqrstuvwxyzabcdefghi'))
+var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 
 param userPrincipal string = 'User'
-// param servicePrincipal string = 'ServicePrincipal'
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   name: resourceGroupName
@@ -43,11 +39,21 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   tags: tags
 }
 
+module aiServices 'core/ai/aiservices.bicep' = {
+  name: 'ai-services-account'
+  scope: resourceGroup
+  params: {
+    name: 'ai-services-${resourceToken}'
+    location: location
+    tags: tags
+  }
+}
+
 module openAi 'core/ai/openai.bicep' = {
   name: 'openai-account'
   scope: resourceGroup
   params: {
-    name: 'cognitive-service-${resourceToken}'
+    name: 'openai-${resourceToken}'
     location: location
     tags: tags
   }
@@ -160,7 +166,7 @@ module keyVault 'core/security/keyvault.bicep' = {
   name: 'keyvault'
   scope: resourceGroup
   params: {
-    name: 'keyvault-${resourceToken}'
+    name: 'keyvault-yyyymmdd'
     location: location
     tags: tags
     principalId: principalId
@@ -187,6 +193,14 @@ module keyVaultSecrets 'core/security/keyvault-secrets.bicep' = {
         value: gptDeploymentName
       }
       {
+        name: 'AzureAiServicesName'
+        value: aiServices.outputs.name
+      }
+      {
+        name: 'AzureAiServicesKey'
+        value: aiServices.outputs.key
+      }
+      {
         name: 'AzureCognitiveSearchEndpoint'
         value: cognitiveSearch.outputs.endpoint
       }
@@ -209,6 +223,14 @@ module keyVaultSecrets 'core/security/keyvault-secrets.bicep' = {
       {
         name: 'AzureCosmosDbName'
         value: cosmosDbName
+      }
+      {
+        name: 'AzureStorageAccountKey'
+        value: storageAccount.outputs.key
+      }
+      {
+        name: 'AzureStorageAccountName'
+        value: storageAccount.outputs.name
       }
       {
         name: 'AzureCosmosDbContainerName'
@@ -248,15 +270,6 @@ module userIdentity 'core/security/identity.bicep' = {
   }
 }
 
-module openAiRoleUser 'core/security/role.bicep' = {
-  scope: resourceGroup
-  name: 'openai-role-user'
-  params: {
-    principalId: principalId
-    roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-    principalType: userPrincipal
-  }
-}
 
 module storageRoleUser 'core/security/role.bicep' = {
   scope: resourceGroup
@@ -277,86 +290,6 @@ module storageContribRoleUser 'core/security/role.bicep' = {
     principalType: userPrincipal
   }
 }
-
-// module acrRole 'core/security/acr-role.bicep' =  {
-//   scope: resourceGroup
-//   name: 'registry-access'
-//   params: {
-//     principalId: userIdentity.outputs.identityId
-//     containerRegistryName: 'containerregistry${resourceToken}'
-//     principalType: servicePrincipal
-//   }
-// }
-
-// module searchRoleUser 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'search-role-user'
-//   params: {
-//     principalId: principalId
-//     roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-//     principalType: userPrincipal
-//   }
-// }
-
-// module searchContribRoleUser 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'search-contribute-role-user'
-//   params: {
-//     principalId: principalId
-//     roleDefinitionId: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-//     principalType: userPrincipal
-//   }
-// }
-
-// module searchSvcContribRoleUser 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'search-svccontribute-role-user'
-//   params: {
-//     principalId: principalId
-//     roleDefinitionId: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-//     principalType: userPrincipal
-//   }
-// }
-
-// module openAiRoleBackend 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'openai-role-backend'
-//   params: {
-//     principalId: userIdentity.outputs.identityId
-//     roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-//     principalType: servicePrincipal
-//   }
-// }
-
-// module storageRoleBackend 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'storage-role-backend'
-//   params: {
-//     principalId: userIdentity.outputs.identityId
-//     roleDefinitionId: '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
-//     principalType: servicePrincipal
-//   }
-// }
-
-// module storageRoleBackend 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'storage-role-backend'
-//   params: {
-//     principalId: userIdentity.outputs.identityId
-//     roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-//     principalType: servicePrincipal
-//   }
-// }
-
-// module searchRoleBackend 'core/security/role.bicep' = {
-//   scope: resourceGroup
-//   name: 'search-role-backend'
-//   params: {
-//     principalId: userIdentity.outputs.identityId
-//     roleDefinitionId: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-//     principalType: servicePrincipal
-//   }
-// }
 
 output AZURE_ENV_NAME string = environmentName
 output AZURE_LOCATION_NAME string = location
