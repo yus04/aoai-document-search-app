@@ -8,23 +8,27 @@ Visual Studio Codeの拡張機能であるDev Containerを用います。
 ## .envの設定
 `.env.sample`を参考にして、`app/backend/.env`と`app/prepdocs/.env`に必要な情報を記載してください。
 
-## LINEのセットアップ
-Line Developerの登録を行い、Webhook URLの登録をしてください。
-https://developers.line.biz/ja/
+## KeyVault名の設定
+keyVaultNameを他のリソース名と重複しないように命名した後(例：keyvault-<年月日>)、以下の2つのファイルに入力する。
+- infra/main.bicepのmodule keyVault 'core/security/keyvault.bicep' > params > name
+    - name: 'keyvault-yyyymmdd'
+- app/prepdocs/.env
+    - AZURE_KEY_VAULT=
 
 ## アプリのデプロイ
 
-環境を初期化
+環境を初期化(Enter a new environment name: で任意の環境名を入力する)
 ```
 azd init
 ```
 
-Azureにログイン
+Azureにログイン(ブラウザに遷移するため、ブラウザ上でログイン)
 ```
 azd auth login
 ```
 
 Azure OpenAIが利用可能なAzureサブスクリプションを設定
+S(aaaaaaaa-bbbb-cccc-ddddddddddddはサブスクリプションIDの例)
 ```
 azd config set defaults.subscription aaaaaaaa-bbbb-cccc-dddddddddddd
 ```
@@ -34,10 +38,15 @@ Azureリソースをプロビジョニング(azd provision)と、アプリのデ
 azd up
 ```
 
+## LINEのセットアップ
+Line Developerの登録を行い、のポータル上でWebhook URLの登録をしてください。登録するURLはContainer AppsのURL+<?bot_name=ボット名>です。
+https://developers.line.biz/ja/
+
 # 注意事項
 - Azure Cognitive Searchは高額なので、不要になったらリソースの削除を行うこと。
-- Bing検索を使用する場合は、app/backend/app.pyの`use_bing_search`を`True`に変更。さらに、AzureポータルでBingリソースを作成し、BING_API_KEYとBING_ENDPOINTをapp/backend/.envに入力した後、`azd deploy`を実行すること。
-
+- Bing検索を使用する場合は、`app/backend/app.py`の`use_bing_search`を`True`に変更。さらに、AzureポータルでBingリソースを作成し、`BING_API_KEY`と`BING_ENDPOINT`を`app/backend/.env`に入力した後、`azd deploy`を実行すること。
+- 検索文章を変更したい場合は、data/以下にpdfファイルを配置し、`app/prepdocs/.env`の`LOCAL_FILE_NAME`を配置したpdfファイル名に変更すること。
+- 初回はDev Containerの起動と`azd up`に時間がかかります。(両方で小一時間程度)
 
 # サンプルデータ
 
