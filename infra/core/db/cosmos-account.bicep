@@ -12,7 +12,7 @@ param defaultConsistencyLevel string = 'Session'
 param publicNetworkAccess string = 'Enabled'
 param databaseAccountOfferType string = 'Standard'
 
-resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
   name: name
   location: location
   tags: tags
@@ -32,7 +32,7 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
   }
 }
 
-output id string = cosmosDb.id
-output name string = cosmosDb.name
-output endpoint string = cosmosDb.properties.documentEndpoint
-output connectionString string = cosmosDb.listConnectionStrings().connectionStrings[0].connectionString
+output id string = cosmosAccount.id
+output name string = cosmosAccount.name
+output endpoint string = cosmosAccount.properties.documentEndpoint
+output connectionString string = cosmosAccount.listConnectionStrings().connectionStrings[0].connectionString

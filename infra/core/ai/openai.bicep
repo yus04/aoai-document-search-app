@@ -15,7 +15,7 @@ param identity object = {
 }
 param publicNetworkAccess string = 'Enabled'
 
-param deploymentName string = 'gpt-35-turbo'
+param deploymentName string = 'gpt-35-turbo-16k'
 param capacity int = 20
 param skuName string = 'Standard'
 param format string = 'OpenAI'

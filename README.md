@@ -3,7 +3,9 @@
 
 ## 開発コンテナの立ち上げ
 Visual Studio Codeの拡張機能であるDev Containerを用います。
-コマンドパレットを立ち上げて、`Reopen in Container`と入力して実行してください。
+コマンドパレットを立ち上げ、Dockerを起動させた状態で、`Rebuild and Reopen in Container`と入力して実行してください。(コンテナの立ち上がりに約5分程時間がかかります。)
+
+![Alt text](img/image.png)
 
 ## .envの設定
 `.env.sample`を参考にして、`app/backend/.env`と`app/prepdocs/.env`に必要な情報を記載してください。
@@ -27,26 +29,32 @@ Azureにログイン(ブラウザに遷移するため、ブラウザ上でロ�
 azd auth login
 ```
 
-Azure OpenAIが利用可能なAzureサブスクリプションを設定
-S(aaaaaaaa-bbbb-cccc-ddddddddddddはサブスクリプションIDの例)
-```
-azd config set defaults.subscription aaaaaaaa-bbbb-cccc-dddddddddddd
-```
-
 Azureリソースをプロビジョニング(azd provision)と、アプリのデプロイ(azd deploy)
 ```
 azd up
 ```
 
-## LINEのセットアップ
-Line Developerの登録を行い、のポータル上でWebhook URLの登録をしてください。登録するURLはContainer AppsのURL+<?bot_name=ボット名>です。
+## デプロイ後のセットアップ
+### LINEのセットアップ
+- Line Developerのポータル上でWebhook URLの登録をしてください。登録するURLは`Container AppsのURL+/callback?<?bot_name=ボット名>`です。
+- チャネルシークレットとチャネルアクセストークンをコピーしてください。
+- Webhookの利用を有効にしてください。
+![Alt text](img/image2.png)
 https://developers.line.biz/ja/
+
+(`app/backend/.env`の`PP_LINE_CHANNEL_SECRE`と`PP_LINE_CHANNEL_ACCESS_TOKEN`については、ローカルでのデバッグを行う場合に設定が必要になります。)
+
+### Container Appsの環境変数の設定
+Azureポータルから、コピーしたチャネルシークレットとチャネルアクセストークンを設定してください。環境変数名は`PP_LINE_CHANNEL_SECRET`と`PP_LINE_CHANNEL_ACCESS_TOKEN`であり、ソースは手動エントリです。
+![Alt text](img/image3.png)
 
 # 注意事項
 - Azure Cognitive Searchは高額なので、不要になったらリソースの削除を行うこと。
 - Bing検索を使用する場合は、`app/backend/app.py`の`use_bing_search`を`True`に変更。さらに、AzureポータルでBingリソースを作成し、`BING_API_KEY`と`BING_ENDPOINT`を`app/backend/.env`に入力した後、`azd deploy`を実行すること。
 - 検索文章を変更したい場合は、data/以下にpdfファイルを配置し、`app/prepdocs/.env`の`LOCAL_FILE_NAME`を配置したpdfファイル名に変更すること。
-- 初回はDev Containerの起動と`azd up`に時間がかかります。(両方で小一時間程度)
+- 初回はDev Containerの起動と`azd up`に時間がかかります。(両方で30分程度)
+- ローカル環境でデバッグをする場合は、`app/backend/.env`の「ローカル環境デバッグ用」以下の環境変数をセットし、`app/backend/app.py`の`load_dotenv`の`for production`行をコメントアウトして`for local test`のコメントアウトを外してください。
+- 複数のBotを利用したい場合は、`app/backend/app.py`でコメントアウトされているボットの定義やapiハンドラー定義を有効化してください。
 
 # サンプルデータ
 

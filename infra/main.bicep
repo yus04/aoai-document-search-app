@@ -23,8 +23,8 @@ param serviceName string = 'aoai-document-search'
 param gptDeploymentName string = 'gptdeployment'
 param searchIndexName string = 'gptkbindex'
 param storageContainerName string = 'Items'
-param cosmosDbName string = 'container'
-param cosmosDbContainerName string = 'Items'
+param cosmosDbName string = 'cosmosdb'
+param cosmosDbContainerName string = 'cosmosdbcontainer'
 
 param principalId string = ''
 param environmentName string
@@ -59,13 +59,31 @@ module openAi 'core/ai/openai.bicep' = {
   }
 }
 
-module cosmosDb 'core/db/cosmos-db.bicep' = {
-  name: 'cosmos-db'
+module cosmosAccount 'core/db/cosmos-account.bicep' = {
+  name: 'cosmos-account'
   scope: resourceGroup
   params: {
-    name: 'cosmos-db-${resourceToken}'
+    name: 'cosmos-account-${resourceToken}'
     location: location
     tags: tags
+  }
+}
+
+module cosmosDatabase 'core/db/cosmos-database.bicep' = {
+  name: 'cosmos-database'
+  scope: resourceGroup
+  params: {
+    accountName: cosmosAccount.outputs.name
+    databaseName: cosmosDbName
+  }
+}
+
+module cosmosContainer 'core/db/cosmos-container.bicep' = {
+  name: 'cosmos-container'
+  scope: resourceGroup
+  params: {
+    databaseName: '${cosmosAccount.outputs.name}/${cosmosDatabase.outputs.name}'
+    containerName: cosmosDbContainerName
   }
 }
 
@@ -82,7 +100,7 @@ module containerApps 'core/host/container-apps.bicep' = {
       }
       {
         name: 'COSMOS_DB_CONNECTION_STRING'
-        value: cosmosDb.outputs.connectionString
+        value: cosmosAccount.outputs.connectionString
       }
       {
         name: 'COSMOS_DB_NAME'
@@ -214,11 +232,11 @@ module keyVaultSecrets 'core/security/keyvault-secrets.bicep' = {
       }
       {
         name: 'AzureCosmosDbEndpoint'
-        value: cosmosDb.outputs.endpoint
+        value: cosmosAccount.outputs.endpoint
       }
       {
         name: 'AzureCosmosDbConnectionString'
-        value: cosmosDb.outputs.connectionString
+        value: cosmosAccount.outputs.connectionString
       }
       {
         name: 'AzureCosmosDbName'
@@ -300,8 +318,8 @@ output AZURE_OPENAI_SERVICE_NAME string = openAi.outputs.name
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_OPENAI_GPT_DEPLOYMENT string = gptDeploymentName
 
-output AZURE_COSMOSDB_NAME string = cosmosDb.outputs.name
-output AZURE_COSMOSDB_ENDPOINT string = cosmosDb.outputs.endpoint
+output AZURE_COSMOSDB_NAME string = cosmosAccount.outputs.name
+output AZURE_COSMOSDB_ENDPOINT string = cosmosAccount.outputs.endpoint
 
 output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerApps.outputs.environmentName
 output AZURE_CONTAINER_APPS_NAME string = containerApps.outputs.containerAppsName

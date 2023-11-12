@@ -7,7 +7,7 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from azure.cosmos import CosmosClient
 
-load_dotenv(dotenv_path='.env')
+load_dotenv(dotenv_path='.env') # for production
 # load_dotenv(dotenv_path='./app/backend/.env') # for local test
 
 openai.api_type = "azure"
@@ -27,42 +27,50 @@ conversation_style_dict = {
 }
 
 authentication_credentials = {
-    'priusbot' : {
-        'line_channel_secret' : os.getenv('PR_LINE_CHANNEL_SECRET', None),
-        'line_channel_access_token' : os.getenv('PR_LINE_CHANNEL_ACCESS_TOKEN', None),
-        'line_bot_api' : LineBotApi(os.getenv('PR_LINE_CHANNEL_ACCESS_TOKEN', None)),
-        'handler' : WebhookHandler(os.getenv('PR_LINE_CHANNEL_SECRET', None))
+    'ppbot' : {
+        'line_channel_secret' : os.getenv('PP_LINE_CHANNEL_SECRET', None),
+        'line_channel_access_token' : os.getenv('PP_LINE_CHANNEL_ACCESS_TOKEN', None),
+        'line_bot_api' : LineBotApi(os.getenv('PP_LINE_CHANNEL_ACCESS_TOKEN', None)),
+        'handler' : WebhookHandler(os.getenv('PP_LINE_CHANNEL_SECRET', None))
     },
-    'skylinebot' : {
-        'line_channel_secret' : os.getenv('SK_LINE_CHANNEL_SECRET', None),
-        'line_channel_access_token' : os.getenv('SK_LINE_CHANNEL_ACCESS_TOKEN', None),
-        'line_bot_api' : LineBotApi(os.getenv('SK_LINE_CHANNEL_ACCESS_TOKEN', None)),
-        'handler' : WebhookHandler(os.getenv('SK_LINE_CHANNEL_SECRET', None))
-    },
-    'ekcrossbot' : {
-        'line_channel_secret' : os.getenv('EK_LINE_CHANNEL_SECRET', None),
-        'line_channel_access_token' : os.getenv('EK_LINE_CHANNEL_ACCESS_TOKEN', None),
-        'line_bot_api' : LineBotApi(os.getenv('EK_LINE_CHANNEL_ACCESS_TOKEN', None)),
-        'handler' : WebhookHandler(os.getenv('EK_LINE_CHANNEL_SECRET', None))
-    },
-    'laviebot' : {
-        'line_channel_secret' : os.getenv('LA_LINE_CHANNEL_SECRET', None),
-        'line_channel_access_token' : os.getenv('LA_LINE_CHANNEL_ACCESS_TOKEN', None),
-        'line_bot_api' : LineBotApi(os.getenv('LA_LINE_CHANNEL_ACCESS_TOKEN', None)),
-        'handler' : WebhookHandler(os.getenv('LA_LINE_CHANNEL_SECRET', None))
-    }
+    # 'priusbot' : {
+    #     'line_channel_secret' : os.getenv('PR_LINE_CHANNEL_SECRET', None),
+    #     'line_channel_access_token' : os.getenv('PR_LINE_CHANNEL_ACCESS_TOKEN', None),
+    #     'line_bot_api' : LineBotApi(os.getenv('PR_LINE_CHANNEL_ACCESS_TOKEN', None)),
+    #     'handler' : WebhookHandler(os.getenv('PR_LINE_CHANNEL_SECRET', None))
+    # },
+    # 'skylinebot' : {
+    #     'line_channel_secret' : os.getenv('SK_LINE_CHANNEL_SECRET', None),
+    #     'line_channel_access_token' : os.getenv('SK_LINE_CHANNEL_ACCESS_TOKEN', None),
+    #     'line_bot_api' : LineBotApi(os.getenv('SK_LINE_CHANNEL_ACCESS_TOKEN', None)),
+    #     'handler' : WebhookHandler(os.getenv('SK_LINE_CHANNEL_SECRET', None))
+    # },
+    # 'ekcrossbot' : {
+    #     'line_channel_secret' : os.getenv('EK_LINE_CHANNEL_SECRET', None),
+    #     'line_channel_access_token' : os.getenv('EK_LINE_CHANNEL_ACCESS_TOKEN', None),
+    #     'line_bot_api' : LineBotApi(os.getenv('EK_LINE_CHANNEL_ACCESS_TOKEN', None)),
+    #     'handler' : WebhookHandler(os.getenv('EK_LINE_CHANNEL_SECRET', None))
+    # },
+    # 'laviebot' : {
+    #     'line_channel_secret' : os.getenv('LA_LINE_CHANNEL_SECRET', None),
+    #     'line_channel_access_token' : os.getenv('LA_LINE_CHANNEL_ACCESS_TOKEN', None),
+    #     'line_bot_api' : LineBotApi(os.getenv('LA_LINE_CHANNEL_ACCESS_TOKEN', None)),
+    #     'handler' : WebhookHandler(os.getenv('LA_LINE_CHANNEL_SECRET', None))
+    # }
 }
 
-pr_line_bot_api = authentication_credentials['priusbot']['line_bot_api']
-sk_line_bot_api = authentication_credentials['skylinebot']['line_bot_api']
-ek_line_bot_api = authentication_credentials['ekcrossbot']['line_bot_api']
-la_line_bot_api = authentication_credentials['laviebot']['line_bot_api']
-pr_handler = authentication_credentials['priusbot']['handler']
-sk_handler = authentication_credentials['skylinebot']['handler']
-ek_handler = authentication_credentials['ekcrossbot']['handler']
-la_handler = authentication_credentials['laviebot']['handler']
+pp_line_bot_api = authentication_credentials['ppbot']['line_bot_api']
+# pr_line_bot_api = authentication_credentials['priusbot']['line_bot_api']
+# sk_line_bot_api = authentication_credentials['skylinebot']['line_bot_api']
+# ek_line_bot_api = authentication_credentials['ekcrossbot']['line_bot_api']
+# la_line_bot_api = authentication_credentials['laviebot']['line_bot_api']
+pp_handler = authentication_credentials['ppbot']['handler']
+# pr_handler = authentication_credentials['priusbot']['handler']
+# sk_handler = authentication_credentials['skylinebot']['handler']
+# ek_handler = authentication_credentials['ekcrossbot']['handler']
+# la_handler = authentication_credentials['laviebot']['handler']
 
-use_bing_search = True
+use_bing_search = False
 use_keyword_query = False
 
 bing_api_subscription_key = os.getenv('BING_API_KEY', None)
@@ -80,33 +88,39 @@ def callback():
     app.logger.info("Request body: " + body)
     bot_name = get_bot_name()
     try:
-        if bot_name == 'priusbot':
-            pr_handler.handle(body, signature)
-        elif bot_name == 'skylinebot':
-            sk_handler.handle(body, signature)
-        elif bot_name == 'ekcrossbot':
-            ek_handler.handle(body, signature)
-        elif bot_name == 'laviebot':
-            la_handler.handle(body, signature)
+        if bot_name == 'ppbot':
+            pp_handler.handle(body, signature)
+        # elif bot_name == 'priusbot':
+        #     pr_handler.handle(body, signature)
+        # elif bot_name == 'skylinebot':
+        #     sk_handler.handle(body, signature)
+        # elif bot_name == 'ekcrossbot':
+        #     ek_handler.handle(body, signature)
+        # elif bot_name == 'laviebot':
+        #     la_handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
     return 'OK'
 
-@pr_handler.add(MessageEvent, message=TextMessage)
-def pr_message(event):
-    handle_message(event, pr_line_bot_api, 'priusbot')
+@pp_handler.add(MessageEvent, message=TextMessage)
+def pp_message(event):
+    handle_message(event, pp_line_bot_api, 'ppbot')
 
-@sk_handler.add(MessageEvent, message=TextMessage)
-def sk_message(event):
-    handle_message(event, sk_line_bot_api, 'skylinebot')
+# @pr_handler.add(MessageEvent, message=TextMessage)
+# def pr_message(event):
+#     handle_message(event, pr_line_bot_api, 'priusbot')
 
-@ek_handler.add(MessageEvent, message=TextMessage)
-def ek_message(event):
-    handle_message(event, ek_line_bot_api, 'ekcrossbot')
+# @sk_handler.add(MessageEvent, message=TextMessage)
+# def sk_message(event):
+#     handle_message(event, sk_line_bot_api, 'skylinebot')
 
-@la_handler.add(MessageEvent, message=TextMessage)
-def la_message(event):
-    handle_message(event, la_line_bot_api, 'laviebot')
+# @ek_handler.add(MessageEvent, message=TextMessage)
+# def ek_message(event):
+#     handle_message(event, ek_line_bot_api, 'ekcrossbot')
+
+# @la_handler.add(MessageEvent, message=TextMessage)
+# def la_message(event):
+#     handle_message(event, la_line_bot_api, 'laviebot')
 
 def handle_message(event: any, line_bot_api: any, bot_name: str) -> None:
     user_message = event.message.text
@@ -227,7 +241,7 @@ def ask_gpt3(prompt: [], chat_history: [], question: []) -> str:
     for item in chat_history: messages.append(item)
     for item in question: messages.append(item)
     response = openai.ChatCompletion.create(
-        engine="gpt-35-turbo",
+        engine="gpt-35-turbo-16k",
         messages=messages,
         max_tokens=2000,
         temperature=0.0,
